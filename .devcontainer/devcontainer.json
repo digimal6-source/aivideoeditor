@@ -5,11 +5,15 @@
     "ghcr.io/devcontainers/features/git:1": {}
   },
   "postCreateCommand": "bash setup.sh",
-  "forwardPorts": [8501],
+  "forwardPorts": [8501, 8000],
   "portsAttributes": {
     "8501": {
       "label": "Streamlit AI Video Editor",
       "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "Chunked Upload Service",
+      "onAutoForward": "silent"
     }
   },
   "customizations": {
