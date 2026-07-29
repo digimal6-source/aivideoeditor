@@ -1,1 +1,99 @@
-# aivideoeditor
+# AI Video Editor
+
+A production-oriented, open-source Streamlit app that turns long-form MP4/MOV footage into captioned 9:16 short-form reels. Processing is local: FFmpeg handles media composition and OpenAI Whisper handles transcription without an API key.
+
+## Features
+
+- Timestamp slicing with `MM:SS` or `HH:MM:SS` input
+- Configurable FFmpeg silence detection and seamless segment stitching
+- Fixed 1080 × 1920 black canvas with a clipped 1080 × 1080 center viewport at `y=420`
+- Subtle 1.0×–1.18× engagement zooms isolated to the square viewport
+- Multi-line top hook with Electric Violet word highlighting (`#A855F7`)
+- Local Whisper `base`/`small` transcription and maximum-three-word ASS caption chunks
+- Burned-in lower captions with bold white type, black outline, and hard shadow
+- H.264/AAC export at 30 or 60 FPS with a browser preview and download
+- Custom hook and subtitle `.ttf` uploads
+
+## Run in GitHub Codespaces
+
+1. Open this repository on GitHub.
+2. Select **Code → Codespaces → Create codespace on main**.
+3. Wait for the devcontainer post-create setup to install FFmpeg, Python packages, and fonts.
+4. In the Codespaces terminal, run:
+
+```bash
+streamlit run app.py
+```
+
+Codespaces forwards port `8501` and opens the app preview automatically. If it does not, open the **Ports** panel and select the forwarded URL for port 8501.
+
+## Run on Debian/Ubuntu
+
+Python 3.10 is recommended.
+
+```bash
+git clone https://github.com/digimal6-source/aivideoeditor.git
+cd aivideoeditor
+bash setup.sh
+streamlit run app.py
+```
+
+## How to use
+
+1. Upload an `.mp4` or `.mov` file.
+2. Set start and end timestamps.
+3. Enter a hook and comma-separated words to highlight.
+4. Optionally upload licensed `.ttf` fonts.
+5. Choose silence removal settings, Whisper model, and 30/60 FPS.
+6. Select **🚀 Generate Short-Form Reel**.
+7. Preview and download `final_reel.mp4`.
+
+The first render downloads the selected Whisper model. CPU rendering is compute-intensive; begin with a 15–30 second range and the `base` model. Files remain inside the current Codespace and are not sent to an external transcription service.
+
+## Video pipeline
+
+1. Re-encode the selected timestamp range for frame-accurate trimming.
+2. Detect silence with FFmpeg `silencedetect`; retain small edge padding and concatenate audible intervals.
+3. Transcribe cleaned audio with local Whisper word timestamps.
+4. Scale/crop source video to a square and apply a periodic zoom with `zoompan`.
+5. Overlay that square at `(0, 420)` on a static 1080 × 1920 black canvas. The square stream clips zoomed edges, so the outer frame never moves.
+6. Overlay the transparent Pillow hook in the top 420px and burn ASS captions into the bottom 420px.
+7. Encode H.264 (`libx264`, CRF 18, `yuv420p`) and AAC 192 kbps with fast-start metadata.
+
+## Font licensing and fallback behavior
+
+`setup.sh` downloads Rubik Bold from Google Fonts. Because Indivisible is not freely redistributable, it downloads the SIL-licensed Montserrat Black fallback into `fonts/Indivisible-Black.ttf`. The app also falls back to DejaVu Sans Bold. Binary font files are ignored by Git and can be replaced locally with properly licensed files.
+
+## Troubleshooting
+
+- **End time exceeds duration:** choose an end timestamp inside the source duration.
+- **No audible content:** lower the silence threshold (for example, from `-30 dB` to `-40 dB`) or disable silence removal.
+- **Whisper is slow:** use `base`, shorten the selected range, or use a larger Codespace machine.
+- **FFmpeg filter error:** verify `ffmpeg -version` and rerun `bash setup.sh`.
+- **Out of memory:** render at 30 FPS and keep source ranges short. Final output remains 1080 × 1920.
+
+## Repository layout
+
+```text
+.devcontainer/devcontainer.json
+.streamlit/config.toml
+fonts/README.md
+src/__init__.py
+src/silence_remover.py
+src/transcription.py
+src/text_overlay.py
+src/video_engine.py
+app.py
+requirements.txt
+setup.sh
+LICENSE
+README.md
+```
+
+## Security and privacy
+
+The app invokes FFmpeg with argument arrays rather than shell interpolation, validates timestamps, accepts only MP4/MOV uploads in the UI, and performs transcription locally. Do not expose a Codespace port publicly when processing sensitive media.
+
+## License
+
+MIT

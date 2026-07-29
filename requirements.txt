@@ -1,0 +1,7 @@
+streamlit>=1.37,<2
+openai-whisper>=20231117
+torch>=2.2,<3
+Pillow>=10.3,<12
+moviepy>=2.0,<3
+auto-editor>=27,<30
+numpy>=1.26,<2.1
