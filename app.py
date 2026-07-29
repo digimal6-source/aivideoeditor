@@ -35,9 +35,33 @@ def save_upload(upload, destination: Path) -> Path:
     return destination
 
 
+def resolve_local_video(value: str) -> Path:
+    path = Path(value.strip()).expanduser().resolve()
+    if not path.is_file():
+        raise ValueError(f"Video file was not found: {path}")
+    if path.suffix.lower() not in {".mp4", ".mov"}:
+        raise ValueError("The local source must be an MP4 or MOV file.")
+    return path
+
+
 with st.sidebar:
     st.header("Reel settings")
-    video = st.file_uploader("Source video", type=["mp4", "mov"], help="MP4 or MOV, up to 2 GB")
+    source_mode = st.radio(
+        "Video source",
+        ["Browser upload", "Codespace file"],
+        help="Use Codespace file for large videos that exceed the forwarded-port upload limit.",
+    )
+    if source_mode == "Browser upload":
+        video = st.file_uploader(
+            "Source video", type=["mp4", "mov"],
+            help="MP4 or MOV. Large uploads may be rejected by the Codespaces proxy.",
+        )
+        local_video_path = ""
+    else:
+        video = None
+        local_video_path = st.text_input("Codespace file path", "input.mp4")
+        st.caption("Place the video in the repository using the Codespaces Explorer, then enter its path here.")
+
     left, right = st.columns(2)
     start_text = left.text_input("Start", "00:00", help="MM:SS")
     end_text = right.text_input("End", "00:30", help="MM:SS")
@@ -80,8 +104,11 @@ All media stays inside your Codespace. No API key is required.
 """)
 
 if generate:
-    if video is None:
+    if source_mode == "Browser upload" and video is None:
         st.error("Upload an MP4 or MOV video first.")
+        st.stop()
+    if source_mode == "Codespace file" and not local_video_path.strip():
+        st.error("Enter the path to an MP4 or MOV file in the Codespace.")
         st.stop()
     try:
         start_seconds = parse_timestamp(start_text)
@@ -96,8 +123,12 @@ if generate:
             status_box.info(message)
 
         workdir = Path(tempfile.mkdtemp(prefix="aivideoeditor_"))
-        suffix = Path(video.name).suffix.lower()
-        input_path = save_upload(video, workdir / f"source{suffix}")
+        if source_mode == "Browser upload":
+            suffix = Path(video.name).suffix.lower()
+            input_path = save_upload(video, workdir / f"source{suffix}")
+        else:
+            input_path = resolve_local_video(local_video_path)
+
         hook_font = save_upload(hook_font_upload, workdir / "custom_hook.ttf") if hook_font_upload else None
         subtitle_font = save_upload(subtitle_font_upload, workdir / "custom_subtitle.ttf") if subtitle_font_upload else None
         output_path = workdir / "final_reel.mp4"
