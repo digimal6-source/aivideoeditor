@@ -20,7 +20,9 @@ ALLOWED_SUFFIXES = {".mp4", ".mov"}
 app = FastAPI(title="AI Video Editor Upload Service", docs_url=None, redoc_url=None)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
+    # Streamlit renders components in a sandboxed srcdoc iframe. Some browsers
+    # report that iframe's Origin as "null", while others use the parent URL.
+    allow_origins=["null", "http://localhost:8501", "http://127.0.0.1:8501"],
     allow_origin_regex=r"https://.*\.app\.github\.dev",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
